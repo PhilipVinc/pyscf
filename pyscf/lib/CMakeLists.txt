@@ -181,35 +181,82 @@ if(BUILD_LIBCINT)
   FetchContent_MakeAvailable(libcint)
 endif() # BUILD_LIBCINT
 
-if(ENABLE_LIBXC AND BUILD_LIBXC)
-  FetchContent_Declare(libxc
-    # GIT_REPOSITORY https://gitlab.com/libxc/libxc.git
-    # GIT_TAG master
-    URL https://gitlab.com/libxc/libxc/-/archive/6.1.0/libxc-6.1.0.tar.gz
-  )
-  set(BUILD_SHARED_LIBS 1)
-  set(ENABLE_FORTRAN 0)
-  set(DISABLE_KXC 0)
-  set(DISABLE_LXC 0)
-  #set(ENABLE_XHOST ${BUILD_MARCH_NATIVE})
+# if(ENABLE_LIBXC AND BUILD_LIBXC)
+#   FetchContent_Declare(libxc
+#     # GIT_REPOSITORY https://gitlab.com/libxc/libxc.git
+#     # GIT_TAG master
+#     URL https://gitlab.com/libxc/libxc/-/archive/6.1.0/libxc-6.1.0.tar.gz
+#   )
+#   set(BUILD_SHARED_LIBS 1)
+#   set(ENABLE_FORTRAN 0)
+#   set(DISABLE_KXC 0)
+#   set(DISABLE_LXC 0)
+#   #set(ENABLE_XHOST ${BUILD_MARCH_NATIVE})
+# 
+#   FetchContent_MakeAvailable(libxc)
+# endif() # ENABLE_LIBXC
 
-  FetchContent_MakeAvailable(libxc)
-endif() # ENABLE_LIBXC
+if(ENABLE_LIBXC)
+  find_package(Libxc CONFIG QUIET)
+  if((TARGET Libxc::xc) AND NOT BUILD_LIBXC)
+    get_property(_loc TARGET Libxc::xc PROPERTY LOCATION)
+    message(STATUS "Found Libxc: ${_loc} (found version ${Libxc_VERSION})")
+  else()
+    message(STATUS "Suitable Libxc could not be located. Fetching and building!")
+    include(FetchContent)
+    FetchContent_Declare(Libxc
+      QUIET
+      # GIT_REPOSITORY https://gitlab.com/libxc/libxc.git
+      # GIT_TAG master
+      URL https://gitlab.com/libxc/libxc/-/archive/6.1.0/libxc-6.1.0.tar.gz
+      )
 
-if(ENABLE_XCFUN AND BUILD_XCFUN)
-  FetchContent_Declare(libxcfun
-    #GIT_REPOSITORY https://github.com/sunqm/xcfun.git
-    GIT_REPOSITORY https://github.com/fishjojo/xcfun.git
-    # copy of v2.1.1, downgrade to cmake 3.5
-    GIT_TAG cmake-3.5
-  )
-  set(BUILD_SHARED_LIBS 1)
-  set(ENABLE_TESTALL 0)
-  set(DISABLE_KXC 0)
-  set(DISABLE_LXC 0)
+    set(ENABLE_TESTALL FALSE CACHE BOOL "")
+    set(BUILD_TESTING FALSE CACHE BOOL "")
+    set(XCFUN_PYTHON_INTERFACE FALSE CACHE BOOL "")
+    set(BUILD_SHARED_LIBS TRUE CACHE BOOL "")
+    set(ENABLE_FORTRAN FALSE CACHE BOOL "")
+    set(DISABLE_KXC FALSE CACHE BOOL "")
+    set(DISABLE_LXC FALSE CACHE BOOL "")
 
-  FetchContent_MakeAvailable(libxcfun)
+    FetchContent_MakeAvailable(Libxc)
+  endif()
 endif()
+
+if(ENABLE_XCFUN)
+  find_package(XCFun CONFIG QUIET)
+  if((TARGET XCFun::xcfun) AND NOT BUILD_XCFUN)
+    get_property(_loc TARGET XCFun::xcfun PROPERTY LOCATION)
+    message(STATUS "Found XCFun: ${_loc} (found version ${XCFun_VERSION})")
+  else()
+    message(STATUS "Suitable XCFun could not be located. Fetching and building!")
+    include(FetchContent)
+    FetchContent_Declare(XCFun
+      QUIET
+      URL
+        https://github.com/dftlibs/xcfun/archive/v2.1.1.tar.gz
+      )
+
+    set(ENABLE_TESTALL FALSE CACHE BOOL "")
+    set(XCFUN_PYTHON_INTERFACE FALSE CACHE BOOL "")
+    FetchContent_MakeAvailable(XCFun)
+  endif()
+endif()
+
+#if(ENABLE_XCFUN AND BUILD_XCFUN)
+#  FetchContent_Declare(libxcfun
+#    #GIT_REPOSITORY https://github.com/sunqm/xcfun.git
+#    GIT_REPOSITORY https://github.com/fishjojo/xcfun.git
+#    # copy of v2.1.1, downgrade to cmake 3.5
+#    GIT_TAG cmake-3.5
+#  )
+#  set(BUILD_SHARED_LIBS 1)
+#  set(ENABLE_TESTALL 0)
+#  set(DISABLE_KXC 0)
+#  set(DISABLE_LXC 0)
+#
+#  FetchContent_MakeAvailable(libxcfun)
+#endif()
 ##
 
 include_directories(${PROJECT_BINARY_DIR}/deps/libxc-build/include)
@@ -274,11 +321,11 @@ if(NOT DISABLE_DFT)
 
   if(ENABLE_XCFUN AND BUILD_XCFUN)
     # this assumes that xc is built as an imported dependency
-    get_target_property(LIBXCFUN_INCLUDES xcfun INCLUDE_DIRECTORIES)
-    target_include_directories(xcfun_itrf PRIVATE ${LIBXCFUN_INCLUDES})
+    #get_target_property(LIBXCFUN_INCLUDES xcfun INCLUDE_DIRECTORIES)
+    #target_include_directories(xcfun_itrf PRIVATE ${LIBXCFUN_INCLUDES})
 
-    add_dependencies(xcfun_itrf xcfun)
-    add_dependencies(dft xcfun)
+    add_dependencies(xcfun_itrf XCFun::xcfun)
+    add_dependencies(dft XCFun::xcfun)
   endif() # ENABLE_XCFUN
 endif() # DISABLE_DFT
 
